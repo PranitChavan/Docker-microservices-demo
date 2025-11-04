@@ -68,18 +68,7 @@ app.use('/api/users', createProxyMiddleware({
   onProxyReq: (proxyReq, req, res) => {
     console.log(`[USER-PROXY] ${req.method} ${req.url} -> ${USER_SERVICE_URL}`);
   },
-  // Apply auth only to profile route
-  router: (req) => {
-    if (req.url?.includes('/profile')) {
-      // Check auth first
-      const authHeader = req.headers['authorization'];
-      const token = authHeader && authHeader.split(' ')[1];
-      if (!token) {
-        return ''; // Will fail naturally
-      }
-    }
-    return USER_SERVICE_URL;
-  }
+
 }));
 
 // ============================================

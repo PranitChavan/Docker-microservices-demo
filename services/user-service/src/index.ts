@@ -93,7 +93,7 @@ app.post('/login', async (req: Request, res: Response) => {
     // Find user
     const user = users.find(u => u.email === email);
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'User not found' });
     }
 
     // Verify password
