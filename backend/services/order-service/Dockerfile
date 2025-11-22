@@ -1,14 +1,35 @@
-# Dockerfile for order-service
-FROM node:18-alpine
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
-RUN npm install
 
+# Install dependencies
+RUN npm ci
+
+# Copy source code
 COPY . .
 
-EXPOSE 3003
+# Build TypeScript
+RUN npm run build
 
-CMD ["npm", "start"]
+# Production stage
+FROM node:20-alpine
 
+WORKDIR /app
+
+# Copy built files and dependencies
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+
+# Expose port
+EXPOSE 3004
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3004/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Run the service
+CMD ["node", "dist/index.js"]
