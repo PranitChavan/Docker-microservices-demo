@@ -3,8 +3,19 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import axios from 'axios';
 import amqp from 'amqplib';
+import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
+
+const OrderStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  SHIPPED: 'SHIPPED',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 const app = express();
 app.use(express.json());
@@ -14,6 +25,20 @@ const PORT = process.env.PORT || 3004;
 const CART_SERVICE_URL = process.env.CART_SERVICE_URL || 'http://localhost:3003';
 const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:3002';
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5672';
+
+// Initialize Prisma Client
+const prisma = new PrismaClient();
+
+// Connect to database
+prisma
+  .$connect()
+  .then(() => console.log('✅ Connected to PostgreSQL'))
+  .catch((err: any) => console.error('❌ Database connection error:', err));
+
+// Graceful shutdown
+process.on('beforeExit', async () => {
+  await prisma.$disconnect();
+});
 
 // RabbitMQ connection
 let rabbitmqChannel: amqp.Channel | null = null;
@@ -33,36 +58,6 @@ async function connectRabbitMQ() {
 }
 
 connectRabbitMQ();
-
-// Types
-interface OrderItem {
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-}
-
-interface Order {
-  id: string;
-  userId: string;
-  items: OrderItem[];
-  total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  shippingAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  paymentMethod: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// In-memory storage (replace with PostgreSQL later)
-let orders: Order[] = [];
-let orderIdCounter = 1;
 
 // Middleware: Extract user ID
 const getUserId = (req: Request, res: Response, next: NextFunction) => {
@@ -87,13 +82,23 @@ async function publishEvent(eventType: string, data: any) {
 }
 
 // Health check
-app.get('/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'healthy',
-    service: 'order-service',
-    rabbitmq: rabbitmqChannel ? 'connected' : 'disconnected',
-    timestamp: new Date(),
-  });
+app.get('/health', async (req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'healthy',
+      service: 'order-service',
+      database: 'connected',
+      rabbitmq: rabbitmqChannel ? 'connected' : 'disconnected',
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      service: 'order-service',
+      database: 'disconnected',
+    });
+  }
 });
 
 // Create order (checkout)
@@ -137,25 +142,27 @@ app.post('/orders', getUserId, async (req: Request, res: Response) => {
       }
     }
 
-    // Create order
-    const newOrder: Order = {
-      id: `order_${orderIdCounter++}`,
-      userId,
-      items: cart.items.map((item: any) => ({
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-      })),
-      total: cart.total,
-      status: 'pending',
-      shippingAddress,
-      paymentMethod,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    orders.push(newOrder);
+    // Create order with items in database
+    const newOrder = await prisma.order.create({
+      data: {
+        userId,
+        total: cart.total,
+        status: OrderStatus.PENDING,
+        shippingAddress: shippingAddress,
+        paymentMethod,
+        items: {
+          create: cart.items.map((item: any) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        },
+      },
+      include: {
+        items: true,
+      },
+    });
 
     // Clear cart
     await axios.delete(`${CART_SERVICE_URL}/cart`, {
@@ -186,10 +193,19 @@ app.post('/orders', getUserId, async (req: Request, res: Response) => {
 });
 
 // Get user orders
-app.get('/orders', getUserId, (req: Request, res: Response) => {
+app.get('/orders', getUserId, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const userOrders = orders.filter((order) => order.userId === userId);
+
+    const userOrders = await prisma.order.findMany({
+      where: { userId },
+      include: {
+        items: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
     res.json({
       total: userOrders.length,
@@ -202,12 +218,17 @@ app.get('/orders', getUserId, (req: Request, res: Response) => {
 });
 
 // Get order by ID
-app.get('/orders/:id', getUserId, (req: Request, res: Response) => {
+app.get('/orders/:id', getUserId, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    const order = orders.find((o) => o.id === id);
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: true,
+      },
+    });
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
@@ -226,27 +247,29 @@ app.get('/orders/:id', getUserId, (req: Request, res: Response) => {
 });
 
 // Update order status (admin functionality)
-app.put('/orders/:id/status', (req: Request, res: Response) => {
+app.put('/orders/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const validStatuses = Object.values(OrderStatus);
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
-    const order = orders.find((o) => o.id === id);
-
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-
-    order.status = status;
-    order.updatedAt = new Date();
+    const order = await prisma.order.update({
+      where: { id },
+      data: {
+        status: status as OrderStatus,
+        updatedAt: new Date(),
+      },
+      include: {
+        items: true,
+      },
+    });
 
     // Publish status update event
-    publishEvent('order_status_updated', {
+    await publishEvent('order_status_updated', {
       orderId: order.id,
       userId: order.userId,
       status: order.status,
@@ -256,19 +279,27 @@ app.put('/orders/:id/status', (req: Request, res: Response) => {
       message: 'Order status updated',
       order,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update order status error:', error);
+
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
     res.status(500).json({ error: 'Failed to update order status' });
   }
 });
 
 // Cancel order
-app.post('/orders/:id/cancel', getUserId, (req: Request, res: Response) => {
+app.post('/orders/:id/cancel', getUserId, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    const order = orders.find((o) => o.id === id);
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
@@ -278,22 +309,30 @@ app.post('/orders/:id/cancel', getUserId, (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    if (order.status === 'shipped' || order.status === 'delivered') {
+    if (order.status === OrderStatus.SHIPPED || order.status === OrderStatus.DELIVERED) {
       return res.status(400).json({ error: 'Cannot cancel shipped or delivered orders' });
     }
 
-    order.status = 'cancelled';
-    order.updatedAt = new Date();
+    const updatedOrder = await prisma.order.update({
+      where: { id },
+      data: {
+        status: OrderStatus.CANCELLED,
+        updatedAt: new Date(),
+      },
+      include: {
+        items: true,
+      },
+    });
 
     // Publish cancellation event
-    publishEvent('order_cancelled', {
-      orderId: order.id,
-      userId: order.userId,
+    await publishEvent('order_cancelled', {
+      orderId: updatedOrder.id,
+      userId: updatedOrder.userId,
     });
 
     res.json({
       message: 'Order cancelled successfully',
-      order,
+      order: updatedOrder,
     });
   } catch (error) {
     console.error('Cancel order error:', error);
