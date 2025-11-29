@@ -38,8 +38,46 @@ docker-compose logs -f
 
 # Stop all services
 docker-compose down
+
+
+docker exec -it ecommerce-postgres psql -U postgres -d ecommerce
 ```
 
 ## Development
 
 Each service can be developed independently. See individual service README files for details.
+
+
+┌─────────────────┐
+                    │   Frontend App  │
+                    │   (React)   │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼─────────┐
+                    │  API Gateway     │
+                    │  Port 3000       │
+                    │  - Auth          │
+                    │  - Routing       │
+                    └─┬─────┬─────┬───┬┘
+          ┌───────────┘     │     │   └─────────┐
+          │                 │     │             │
+    ┌─────▼──────┐   ┌─────▼────┐ ┌──▼─────┐ ┌─▼──────┐
+    │   User     │   │ Product  │ │  Cart  │ │ Order  │
+    │  Service   │   │ Service  │ │Service │ │Service │
+    │   :3001    │   │  :3002   │ │ :3003  │ │ :3004  │
+    └─────┬──────┘   └─────┬────┘ └───┬────┘ └───┬────┘
+          │                │           │          │
+    ┌─────▼────────────────▼───────────┘          │
+    │      PostgreSQL Database                    │
+    │  - users table                               │
+    │  - products table                            │
+    │  - orders table                              │
+    │  - order_items table                         │
+    └─────────────────────────────┬────────────────┘
+                                  │
+                    ┌─────────────▼──────┐  ┌────────────┐
+                    │       Redis        │  │ RabbitMQ   │
+                    │   (Cart Storage)   │  │  (Events)  │
+                    └────────────────────┘  └────────────┘
+
+                    

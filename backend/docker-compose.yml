@@ -7,16 +7,16 @@ services:
     container_name: ecommerce-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ecommerce
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - ecommerce-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,11 +26,11 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: ecommerce-rabbitmq
     ports:
-      - '5672:5672'
-      - '15672:15672'
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin}
     networks:
       - ecommerce-network
     healthcheck:
@@ -44,11 +44,11 @@ services:
     image: redis:7-alpine
     container_name: ecommerce-redis
     ports:
-      - '6379:6379'
+      - "6379:6379"
     networks:
       - ecommerce-network
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -58,11 +58,11 @@ services:
     build: ./services/user-service
     container_name: user-service
     ports:
-      - '3001:3001'
+      - "3001:3001"
     environment:
       PORT: 3001
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
-      JWT_SECRET: super-secret-jwt-key-change-in-production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecommerce
+      JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: production
     depends_on:
       postgres:
@@ -75,10 +75,10 @@ services:
     build: ./services/product-service
     container_name: product-service
     ports:
-      - '3002:3002'
+      - "3002:3002"
     environment:
       PORT: 3002
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecommerce
       NODE_ENV: production
     depends_on:
       postgres:
@@ -91,7 +91,7 @@ services:
     build: ./services/cart-service
     container_name: cart-service
     ports:
-      - '3003:3003'
+      - "3003:3003"
     environment:
       PORT: 3003
       REDIS_URL: redis://redis:6379
@@ -110,13 +110,13 @@ services:
     build: ./services/order-service
     container_name: order-service
     ports:
-      - '3004:3004'
+      - "3004:3004"
     environment:
       PORT: 3004
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecommerce
       CART_SERVICE_URL: http://cart-service:3003
       PRODUCT_SERVICE_URL: http://product-service:3002
-      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      RABBITMQ_URL: amqp://admin:${RABBITMQ_PASSWORD:-admin}@rabbitmq:5672
       NODE_ENV: production
     depends_on:
       postgres:
@@ -135,10 +135,10 @@ services:
     build: ./services/api-gateway
     container_name: api-gateway
     ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       PORT: 3000
-      JWT_SECRET: super-secret-jwt-key-change-in-production
+      JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: production
       USER_SERVICE_URL: http://user-service:3001
       PRODUCT_SERVICE_URL: http://product-service:3002
