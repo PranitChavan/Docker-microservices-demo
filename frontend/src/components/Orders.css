@@ -1,0 +1,125 @@
+.orders-container {
+  padding: 2rem 0;
+}
+
+.orders-container h1 {
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+}
+
+.no-orders {
+  text-align: center;
+  padding: 4rem 2rem;
+  background-color: var(--bg-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.no-orders p {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.order-card {
+  background-color: var(--bg-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: all 0.3s;
+  display: block;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.order-header h3 {
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.order-date {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.order-status {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: var(--warning-color);
+}
+
+.status-processing {
+  background-color: #dbeafe;
+  color: var(--primary-color);
+}
+
+.status-shipped {
+  background-color: #e0e7ff;
+  color: #6366f1;
+}
+
+.status-delivered {
+  background-color: #d1fae5;
+  color: var(--success-color);
+}
+
+.status-cancelled {
+  background-color: #fee2e2;
+  color: var(--error-color);
+}
+
+.order-items-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.order-item-tag {
+  background-color: var(--bg-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.order-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.order-total {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
