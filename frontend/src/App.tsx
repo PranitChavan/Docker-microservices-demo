@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Navbar } from './components/Navbar';
 import { Products } from './components/Products';
 import { ProductDetail } from './components/ProductDetail';
+import { AddProduct } from './components/AddProduct';
 import { Cart } from './components/Cart';
 import { Checkout } from './components/Checkout';
 import { Orders } from './components/Orders';
@@ -22,6 +23,14 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route
+              path="/products/add"
+              element={
+                <ProtectedRoute>
+                  <AddProduct />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/cart"
               element={

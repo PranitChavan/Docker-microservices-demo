@@ -102,7 +102,7 @@ export const Orders = () => {
                 )}
               </div>
               <div className="order-footer">
-                <span className="order-total">Total: ${order.total.toFixed(2)}</span>
+                <span className="order-total">Total: ₹{order.total.toFixed(2)}</span>
               </div>
             </Link>
           ))}

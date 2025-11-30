@@ -130,7 +130,7 @@ export const OrderDetail = () => {
                     <p>Quantity: {item.quantity}</p>
                   </div>
                   <div className="order-item-price">
-                    ${(item.price * item.quantity).toFixed(2)}
+                    ₹{(item.price * item.quantity).toFixed(2)}
                   </div>
                 </div>
               ))}
@@ -158,11 +158,11 @@ export const OrderDetail = () => {
               <h2>Order Summary</h2>
               <div className="summary-row">
                 <span>Subtotal:</span>
-                <span>${order.total.toFixed(2)}</span>
+                <span>₹{order.total.toFixed(2)}</span>
               </div>
               <div className="summary-row total">
                 <span>Total:</span>
-                <span>${order.total.toFixed(2)}</span>
+                <span>₹{order.total.toFixed(2)}</span>
               </div>
             </div>
 

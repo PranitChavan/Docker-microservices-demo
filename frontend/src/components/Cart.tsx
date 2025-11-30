@@ -115,7 +115,7 @@ export const Cart = () => {
             <div key={item.productId} className="cart-item">
               <div className="cart-item-info">
                 <h3>{item.name}</h3>
-                <p className="cart-item-price">${item.price.toFixed(2)} each</p>
+                <p className="cart-item-price">₹{item.price.toFixed(2)} each</p>
               </div>
               <div className="cart-item-controls">
                 <div className="quantity-controls">
@@ -136,7 +136,7 @@ export const Cart = () => {
                   </button>
                 </div>
                 <div className="cart-item-subtotal">
-                  ${item.subtotal.toFixed(2)}
+                  ₹{item.subtotal.toFixed(2)}
                 </div>
                 <button
                   onClick={() => removeItem(item.productId)}
@@ -154,7 +154,7 @@ export const Cart = () => {
           <h2>Order Summary</h2>
           <div className="summary-row">
             <span>Subtotal:</span>
-            <span>${cart.total.toFixed(2)}</span>
+            <span>₹{cart.total.toFixed(2)}</span>
           </div>
           <div className="summary-row">
             <span>Items:</span>
@@ -162,7 +162,7 @@ export const Cart = () => {
           </div>
           <div className="summary-row total">
             <span>Total:</span>
-            <span>${cart.total.toFixed(2)}</span>
+            <span>₹{cart.total.toFixed(2)}</span>
           </div>
           <button
             onClick={() => navigate('/checkout')}

@@ -18,7 +18,7 @@ export const Checkout = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: 'USA',
+    country: 'India',
     paymentMethod: 'credit_card',
   });
   const navigate = useNavigate();
@@ -180,13 +180,13 @@ export const Checkout = () => {
             {cart.items.map((item) => (
               <div key={item.productId} className="summary-item">
                 <span>{item.name} x {item.quantity}</span>
-                <span>${item.subtotal.toFixed(2)}</span>
+                <span>₹{item.subtotal.toFixed(2)}</span>
               </div>
             ))}
           </div>
           <div className="summary-row total">
             <span>Total:</span>
-            <span>${cart.total.toFixed(2)}</span>
+            <span>₹{cart.total.toFixed(2)}</span>
           </div>
         </div>
       </div>

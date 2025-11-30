@@ -15,6 +15,7 @@ export const Navbar = () => {
           <Link to="/">Products</Link>
           {isAuthenticated ? (
             <>
+              <Link to="/products/add">Add Product</Link>
               <Link to="/cart">Cart</Link>
               <Link to="/orders">Orders</Link>
               <div className="navbar-user">

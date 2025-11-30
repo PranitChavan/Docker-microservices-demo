@@ -90,7 +90,7 @@ export const ProductDetail = () => {
           <h1>{product.name}</h1>
           <p className="product-category">{product.category}</p>
           <p className="product-description">{product.description}</p>
-          <div className="product-price-large">${product.price.toFixed(2)}</div>
+          <div className="product-price-large">₹{product.price.toFixed(2)}</div>
           <div className={`product-stock ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}>
             {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
           </div>
